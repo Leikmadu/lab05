@@ -741,3 +741,5 @@ x2 = 1.203768
 
 
 [![C++ CI](https://github.com/Leikmadu/lab04/actions/workflows/ci.yml/badge.svg)](https://github.com/Leikmadu/lab04/actions/workflows/ci.yml)
+
+[![C++ CI](https://github.com/Leikmadu/lab04/actions/workflows/ci.yml/badge.svg)](https://github.com/Leikmadu/lab04/actions/workflows/ci.yml)
