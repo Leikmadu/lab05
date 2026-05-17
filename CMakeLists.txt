@@ -1,38 +1,34 @@
 cmake_minimum_required(VERSION 3.14)
-project(print)
+project(lab05)
 
-set(CMAKE_CXX_STANDARD 11)
-set(CMAKE_CXX_STANDARD_REQUIRED ON)
-
-option(BUILD_EXAMPLES "Build examples" OFF)
 option(BUILD_TESTS "Build tests" OFF)
+option(COVERAGE "Enable coverage reporting" OFF)
 
-add_library(print STATIC ${CMAKE_CURRENT_SOURCE_DIR}/sources/print.cpp)
-target_include_directories(print PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/include)
+add_subdirectory(banking)
 
-if(BUILD_EXAMPLES)
-  add_executable(example1 ${CMAKE_CURRENT_SOURCE_DIR}/examples/example1.cpp)
-  add_executable(example2 ${CMAKE_CURRENT_SOURCE_DIR}/examples/example2.cpp)
-  target_link_libraries(example1 print)
-  target_link_libraries(example2 print)
+if(COVERAGE)
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} --coverage -O0 -g")
+    set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} --coverage -O0 -g")
 endif()
 
 if(BUILD_TESTS)
-  enable_testing()
-  
-  include(FetchContent)
-  FetchContent_Declare(
-    googletest
-    GIT_REPOSITORY https://github.com/google/googletest.git
-    GIT_TAG release-1.12.1
-  )
-  FetchContent_MakeAvailable(googletest)
-  
-  file(GLOB TEST_SOURCES tests/*.cpp)
-  add_executable(check ${TEST_SOURCES})
-  
-  # Правильная линковка с GTest
-  target_link_libraries(check print GTest::gtest_main)
-  
-  add_test(NAME check COMMAND check)
+    enable_testing()
+    
+    include(FetchContent)
+    FetchContent_Declare(
+        googletest
+        GIT_REPOSITORY https://github.com/google/googletest.git
+        GIT_TAG release-1.12.1
+    )
+    FetchContent_MakeAvailable(googletest)
+    
+    add_executable(banking_tests
+        banking/tests/test_account.cpp
+        banking/tests/test_transaction.cpp
+    )
+    
+    target_link_libraries(banking_tests banking gtest_main gmock_main)
+    target_include_directories(banking_tests PRIVATE banking)
+    
+    add_test(NAME banking_tests COMMAND banking_tests)
 endif()
