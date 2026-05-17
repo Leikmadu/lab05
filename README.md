@@ -7,7 +7,7 @@ $ open https://travis-ci.org
 
 ## Tasks
 - 1. Авторизоваться на сервисе Travis CI с использованием GitHub аккаунта
-- 2.Cоздать публичный репозиторий с названием lab04 на сервисе GitHub
+- 2.Cоздать публичный репозиторий с названием lab05 на сервисе GitHub
 - 3. Ознакомиться со ссылками учебного материала
 - 4. Включить интеграцию сервиса Travis CI с созданным репозиторием
 - 5. Получить токен для Travis CLI с правами repo и user
@@ -93,11 +93,11 @@ Using /home/Leikmadur/.rvm/gems/ruby-2.4.2
 
 
 ```bash
-$ git clone https://github.com/${GITHUB_USERNAME}/lab03 projects/lab04
+$ git clone https://github.com/${GITHUB_USERNAME}/lab03 projects/lab05
 ```
 **Вывод**
 ```
-Cloning into 'projects/lab04'...
+Cloning into 'projects/lab05'...
 remote: Enumerating objects: 100, done.
 remote: Counting objects: 100% (100/100), done.
 remote: Compressing objects: 100% (76/76), done.
@@ -108,13 +108,13 @@ Resolving deltas: 100% (26/26), done.
 ```
 
 ```bash
-$ cd projects/lab04
+$ cd projects/lab05
 $ git remote remove origin
-$ git remote add origin https://github.com/Leikmadu/lab04.git
-$ git clone https://github.com/${GITHUB_USERNAME}/lab03 projects/lab04
-$ cd projects/lab04
+$ git remote add origin https://github.com/Leikmadu/lab05.git
+$ git clone https://github.com/${GITHUB_USERNAME}/lab03 projects/lab05
+$ cd projects/lab05
 $ git remote remove origin
-$ git remote add origin https://github.com/${GITHUB_USERNAME}/lab04
+$ git remote add origin https://github.com/${GITHUB_USERNAME}/lab05
 ```
 
 ```bash 
@@ -218,7 +218,7 @@ EOF
 ```bash
 
 echo "" >> README.md
-echo "[![C++ CI](https://github.com/Leikmadu/lab04/actions/workflows/ci.yml/badge.svg)](https://github.com/Leikmadu/lab04/actions/workflows/ci.yml)" >> README.md
+echo "[![C++ CI](https://github.com/Leikmadu/lab05/actions/workflows/ci.yml/badge.svg)](https://github.com/Leikmadu/lab05/actions/workflows/ci.yml)" >> README.md
 ```
 
 ``` bash

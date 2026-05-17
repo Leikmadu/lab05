@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.10)
+cmake_minimum_required(VERSION 3.14)
 project(print)
 
 set(CMAKE_CXX_STANDARD 11)
@@ -19,9 +19,20 @@ endif()
 
 if(BUILD_TESTS)
   enable_testing()
-  add_subdirectory(third-party/gtest)
-  file(GLOB ${PROJECT_NAME}_TEST_SOURCES tests/*.cpp)
-  add_executable(check ${${PROJECT_NAME}_TEST_SOURCES})
-  target_link_libraries(check print gtest_main)
+  
+  include(FetchContent)
+  FetchContent_Declare(
+    googletest
+    GIT_REPOSITORY https://github.com/google/googletest.git
+    GIT_TAG release-1.12.1
+  )
+  FetchContent_MakeAvailable(googletest)
+  
+  file(GLOB TEST_SOURCES tests/*.cpp)
+  add_executable(check ${TEST_SOURCES})
+  
+  # Правильная линковка с GTest
+  target_link_libraries(check print GTest::gtest_main)
+  
   add_test(NAME check COMMAND check)
 endif()
