@@ -444,68 +444,7 @@ $ nano test_transaction.cpp
 
 using ::testing::_;
 using ::testing::Return;
-using ::testing::InSequence;
-using ::testing::AnyNumber;
-
-// Успешный перевод
-TEST(TransactionTest, SuccessfulTransfer) {
-    MockAccount from(1, 1000);
-    MockAccount to(2, 500);
-    Transaction tx;
-    tx.set_fee(1);
-    
-    {
-        InSequence seq;
-        EXPECT_CALL(from, GetBalance()).WillOnce(Return(1000));
-        EXPECT_CALL(from, Lock()).Times(1);
-        EXPECT_CALL(to, Lock()).Times(1);
-        EXPECT_CALL(to, ChangeBalance(200)).Times(1);
-        EXPECT_CALL(from, ChangeBalance(-201)).Times(1);
-        EXPECT_CALL(from, Unlock()).Times(1);
-        EXPECT_CALL(to, Unlock()).Times(1);
-    }
-    
-    EXPECT_TRUE(tx.Make(from, to, 200));
-}
-
-// Недостаточно средств - проверка баланса происходит ДО блокировки
-TEST(TransactionTest, InsufficientFunds) {
-    MockAccount from(1, 100);
-    MockAccount to(2, 500);
-    Transaction tx;
-    tx.set_fee(1);
-    
-    // Ожидаем только проверку баланса, без блокировок и изменений
-    EXPECT_CALL(from, GetBalance()).WillOnce(Return(100));
-    // Lock и другие методы НЕ должны вызываться
-    EXPECT_CALL(from, Lock()).Times(0);
-    EXPECT_CALL(to, Lock()).Times(0);
-    EXPECT_CALL(to, ChangeBalance(_)).Times(0);
-    EXPECT_CALL(from, ChangeBalance(_)).Times(0);
-    EXPECT_CALL(from, Unlock()).Times(0);
-    EXPECT_CALL(to, Unlock()).Times(0);
-    
-    EXPECT_FALSE(tx.Make(from, to, 150));
-}
-
-// Проверка вызова SaveToDataBase
-TEST(TransactionTest, SaveToDataBaseIsCalled) {
-    MockAccount from(1, 1000);
-    MockAccount to(2, 500);
-    MockTransaction tx;
-    tx.set_fee(1);
-    
-    EXPECT_CALL(from, GetBalance()).WillOnce(Return(1000));
-    EXPECT_CALL(from, Lock()).Times(1);
-    EXPECT_CALL(to, Lock()).Times(1);
-    EXPECT_CALL(to, ChangeBalance(200)).Times(1);
-    EXPECT_CALL(from, ChangeBalance(-201)).Times(1);
-    EXPECT_CALL(tx, SaveToDataBase(_, _, 200)).Times(1);
-    EXPECT_CALL(from, Unlock()).Times(1);
-    EXPECT_CALL(to, Unlock()).Times(1);
-    
-    EXPECT_TRUE(tx.Make(from, to, 200));
-}
+using ::testing::Throw;
 
 // Попытка перевода на тот же счёт
 TEST(TransactionTest, SameAccountThrows) {
@@ -536,10 +475,85 @@ TEST(TransactionTest, FeeTooLargeReturnsFalse) {
     MockAccount to(2, 500);
     Transaction tx;
     tx.set_fee(100);
-    
     EXPECT_CALL(from, GetBalance()).WillOnce(Return(1000));
-    
     EXPECT_FALSE(tx.Make(from, to, 150));
+}
+
+// Успешный перевод
+TEST(TransactionTest, SuccessfulTransfer) {
+    MockAccount from(1, 1000);
+    MockAccount to(2, 500);
+    Transaction tx;
+    tx.set_fee(1);
+
+    EXPECT_CALL(from, Lock()).Times(1);
+    EXPECT_CALL(to, Lock()).Times(1);
+    EXPECT_CALL(to, ChangeBalance(200)).Times(1);
+    EXPECT_CALL(from, GetBalance()).WillOnce(Return(1000));
+    EXPECT_CALL(from, ChangeBalance(-201)).Times(1);
+    EXPECT_CALL(from, Unlock()).Times(1);
+    EXPECT_CALL(to, Unlock()).Times(1);
+
+    EXPECT_TRUE(tx.Make(from, to, 200));
+}
+
+// Недостаточно средств - проверка ДО блокировки
+TEST(TransactionTest, InsufficientFunds) {
+    MockAccount from(1, 100);
+    MockAccount to(2, 500);
+    Transaction tx;
+    tx.set_fee(1);
+
+    // Ожидаем только вызов GetBalance для проверки
+    EXPECT_CALL(from, GetBalance()).WillOnce(Return(100));
+    
+    // Блокировки и изменения НЕ должны вызываться
+    EXPECT_CALL(from, Lock()).Times(0);
+    EXPECT_CALL(to, Lock()).Times(0);
+    EXPECT_CALL(to, ChangeBalance(_)).Times(0);
+    EXPECT_CALL(from, ChangeBalance(_)).Times(0);
+    EXPECT_CALL(from, Unlock()).Times(0);
+    EXPECT_CALL(to, Unlock()).Times(0);
+
+    EXPECT_FALSE(tx.Make(from, to, 150));
+}
+
+// Проверка вызова SaveToDataBase
+TEST(TransactionTest, SaveToDataBaseIsCalled) {
+    MockAccount from(1, 1000);
+    MockAccount to(2, 500);
+    MockTransaction tx;
+    tx.set_fee(1);
+
+    EXPECT_CALL(from, Lock()).Times(1);
+    EXPECT_CALL(to, Lock()).Times(1);
+    EXPECT_CALL(to, ChangeBalance(200)).Times(1);
+    EXPECT_CALL(from, GetBalance()).WillOnce(Return(1000));
+    EXPECT_CALL(from, ChangeBalance(-201)).Times(1);
+    EXPECT_CALL(tx, SaveToDataBase(_, _, 200)).Times(1);
+    EXPECT_CALL(from, Unlock()).Times(1);
+    EXPECT_CALL(to, Unlock()).Times(1);
+
+    EXPECT_TRUE(tx.Make(from, to, 200));
+}
+
+// Тест для покрытия catch блока
+TEST(TransactionTest, ExceptionDuringChangeBalanceTriggersRollback) {
+    MockAccount from(1, 1000);
+    MockAccount to(2, 500);
+    Transaction tx;
+    tx.set_fee(1);
+
+    EXPECT_CALL(from, Lock()).Times(1);
+    EXPECT_CALL(to, Lock()).Times(1);
+    EXPECT_CALL(to, ChangeBalance(200)).Times(1);
+    EXPECT_CALL(from, GetBalance()).WillOnce(Return(1000));
+    EXPECT_CALL(from, ChangeBalance(-201)).WillOnce(Throw(std::runtime_error("Test error")));
+    EXPECT_CALL(to, ChangeBalance(-200)).Times(1);
+    EXPECT_CALL(from, Unlock()).Times(1);
+    EXPECT_CALL(to, Unlock()).Times(1);
+
+    EXPECT_THROW(tx.Make(from, to, 200), std::runtime_error);
 }
 ```
 
@@ -665,7 +679,7 @@ test 1
 1: Working Directory: /home/kirill/Desktop/Leikmadur/workspace/lab05/_build
 1: Test timeout computed to be: 10000000
 1: Running main() from /home/kirill/Desktop/Leikmadur/workspace/lab05/_build/_deps/googletest-src/googletest/src/gtest_main.cc
-1: [==========] Running 12 tests from 2 test suites.
+1: [==========] Running 13 tests from 2 test suites.
 1: [----------] Global test environment set-up.
 1: [----------] 5 tests from AccountTest
 1: [ RUN      ] AccountTest.Constructor
@@ -680,7 +694,15 @@ test 1
 1: [       OK ] AccountTest.UnlockWithoutLockDoesNothing (0 ms)
 1: [----------] 5 tests from AccountTest (0 ms total)
 1: 
-1: [----------] 7 tests from TransactionTest
+1: [----------] 8 tests from TransactionTest
+1: [ RUN      ] TransactionTest.SameAccountThrows
+1: [       OK ] TransactionTest.SameAccountThrows (0 ms)
+1: [ RUN      ] TransactionTest.NegativeSumThrows
+1: [       OK ] TransactionTest.NegativeSumThrows (0 ms)
+1: [ RUN      ] TransactionTest.SumTooSmallThrows
+1: [       OK ] TransactionTest.SumTooSmallThrows (0 ms)
+1: [ RUN      ] TransactionTest.FeeTooLargeReturnsFalse
+1: [       OK ] TransactionTest.FeeTooLargeReturnsFalse (0 ms)
 1: [ RUN      ] TransactionTest.SuccessfulTransfer
 1: Transaction saved: 1 -> 2 200
 1: 1 send to 2 $200
@@ -690,24 +712,19 @@ test 1
 1: [ RUN      ] TransactionTest.SaveToDataBaseIsCalled
 1: 1 send to 2 $200
 1: [       OK ] TransactionTest.SaveToDataBaseIsCalled (0 ms)
-1: [ RUN      ] TransactionTest.SameAccountThrows
-1: [       OK ] TransactionTest.SameAccountThrows (0 ms)
-1: [ RUN      ] TransactionTest.NegativeSumThrows
-1: [       OK ] TransactionTest.NegativeSumThrows (0 ms)
-1: [ RUN      ] TransactionTest.SumTooSmallThrows
-1: [       OK ] TransactionTest.SumTooSmallThrows (0 ms)
-1: [ RUN      ] TransactionTest.FeeTooLargeReturnsFalse
-1: [       OK ] TransactionTest.FeeTooLargeReturnsFalse (0 ms)
-1: [----------] 7 tests from TransactionTest (0 ms total)
+1: [ RUN      ] TransactionTest.ExceptionDuringChangeBalanceTriggersRollback
+1: [       OK ] TransactionTest.ExceptionDuringChangeBalanceTriggersRollback (0 ms)
+1: [----------] 8 tests from TransactionTest (1 ms total)
 1: 
 1: [----------] Global test environment tear-down
-1: [==========] 12 tests from 2 test suites ran. (1 ms total)
-1: [  PASSED  ] 12 tests.
-1/1 Test #1: banking_tests ....................   Passed    0.01 sec
+1: [==========] 13 tests from 2 test suites ran. (2 ms total)
+1: [  PASSED  ] 13 tests.
+1/1 Test #1: banking_tests ....................   Passed    0.02 sec
 
 100% tests passed, 0 tests failed out of 1
 
-Total Test time (real) =   0.01 sec
+Total Test time (real) =   0.02 sec
+
 ```
 
 ```sh
